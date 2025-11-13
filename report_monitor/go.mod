@@ -5,6 +5,7 @@ go 1.18
 require github.com/tidwall/buntdb v1.1.0
 
 require (
+	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tidwall/btree v0.0.0-20170113224114-9876f1454cf0 // indirect
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/grect v0.0.0-20161006141115-ba9a043346eb // indirect
