@@ -1,0 +1,12 @@
+[Unit]
+Description=Run EvilGoPhish every 2 hours
+Requires=evilgophish.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=2h
+Unit=evilgophish.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

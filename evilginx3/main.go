@@ -28,6 +28,8 @@ var version_flag = flag.Bool("v", false, "Show version")
 var gophish_db = flag.String("g", "", "Full path to gophish database")
 var feed_enabled = flag.Bool("feed", false, "Enable live feed")
 var turnstile = flag.String("turnstile", "", "Turnstile public/private key separated by \":\"")
+var reports_dir = flag.String("reports", "", "Reports directory path for storing captured data")
+var telegram_config = flag.String("telegram", "", "Telegram configuration file path")
 
 func joinPath(base_path string, rel_path string) string {
 	var ret string
