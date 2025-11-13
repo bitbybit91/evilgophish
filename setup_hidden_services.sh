@@ -180,6 +180,12 @@ function build_components () {
     go build
     print_good "EvilFeed built successfully"
     
+    # Build Report Monitor
+    print_info "Building Report Monitor..."
+    cd "$INSTALL_DIR/report_monitor"
+    go build -o report_monitor
+    print_good "Report Monitor built successfully"
+    
     cd "$INSTALL_DIR"
 }
 

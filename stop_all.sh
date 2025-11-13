@@ -53,11 +53,13 @@ stop_process() {
 }
 
 # Stop components in reverse order
+stop_process "$SCRIPT_DIR/report_monitor.pid" "Report Monitor"
 stop_process "$SCRIPT_DIR/evilginx3.pid" "Evilginx3"
 stop_process "$SCRIPT_DIR/evilfeed.pid" "EvilFeed"
 stop_process "$SCRIPT_DIR/gophish.pid" "GoPhish"
 
 # Also try to kill by process name as backup
+pkill -f "report_monitor" 2>/dev/null || true
 pkill -f "evilginx3" 2>/dev/null || true
 pkill -f "evilfeed" 2>/dev/null || true
 pkill -f "gophish" 2>/dev/null || true

@@ -20,6 +20,7 @@ gophish/gophish.db
 evilginx3/evilginx3
 gophish/gophish
 evilfeed/evilfeed
+report_monitor/report_monitor
 
 # Certificates
 *.crt
@@ -34,3 +35,9 @@ log/
 *.tmp
 *.swp
 *~
+
+# Process ID files
+*.pid
+
+# Log directories
+logs/

