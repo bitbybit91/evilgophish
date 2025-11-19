@@ -1,0 +1,43 @@
+# Telegram configuration with secrets
+telegram_config.json
+
+# Reports directory contents (keep structure, not data)
+reports/sessions/*
+reports/credentials/*
+reports/raw/*
+!reports/.gitkeep
+!reports/*/.gitkeep
+
+# Evilginx database
+evilginx3/*.db
+evilginx3/.evilginx
+
+# GoPhish database
+gophish/*.db
+gophish/gophish.db
+
+# Build artifacts
+evilginx3/evilginx3
+gophish/gophish
+evilfeed/evilfeed
+report_monitor/report_monitor
+
+# Certificates
+*.crt
+*.key
+*.pem
+
+# Logs
+*.log
+log/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Process ID files
+*.pid
+
+# Log directories
+logs/

@@ -1,0 +1,28 @@
+[Unit]
+Description=EvilGoPhish - Phishing Framework for Hidden Services
+After=network.target tor.service
+Wants=tor.service
+Documentation=https://github.com/bitbybit91/evilgophish
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/evilgophish
+Environment="REPORTS_DIR=/opt/evilgophish/reports"
+Environment="TELEGRAM_CONFIG=/opt/evilgophish/telegram_config.json"
+ExecStartPre=/bin/sleep 10
+ExecStart=/opt/evilgophish/start_all.sh
+ExecStop=/opt/evilgophish/stop_all.sh
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=false
+PrivateTmp=false
+ProtectSystem=false
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target
