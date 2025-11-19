@@ -33,28 +33,57 @@ function print_info () {
 if [[ $# -lt 2 ]]; then
     print_error "Missing Parameters:"
     print_error "Usage:"
-    print_error './setup_hidden_services.sh <onion_domain> <rid_replacement> [telegram_bot_token] [telegram_chat_id]'
-    print_error " - onion_domain         - your .onion domain for the hidden service"
+    print_error './setup_hidden_services.sh <rid_replacement> [backend_service] [backend_port] [telegram_bot_token] [telegram_chat_id]'
     print_error " - rid_replacement      - replace the gophish default \"rid\" in URLs (e.g., user_id)"
+    print_error " - backend_service      - (optional) backend service type: evilginx3|php|wordpress|apache|nginx (default: evilginx3)"
+    print_error " - backend_port         - (optional) backend service port (default: 443 for evilginx3, 80 for others)"
     print_error " - telegram_bot_token   - (optional) your Telegram bot token"
     print_error " - telegram_chat_id     - (optional) your Telegram chat ID"
     print_error "Example:"
-    print_error '  ./setup_hidden_services.sh abc123xyz456.onion user_id'
-    print_error '  ./setup_hidden_services.sh abc123xyz456.onion user_id 123456:ABC-DEF -987654321'
+    print_error '  ./setup_hidden_services.sh user_id'
+    print_error '  ./setup_hidden_services.sh user_id wordpress 8080'
+    print_error '  ./setup_hidden_services.sh user_id php 80 123456:ABC-DEF -987654321'
+    print_error ""
+    print_error "Supported backend services:"
+    print_error "  evilginx3  - EvilGinx3 proxy (default)"
+    print_error "  php        - PHP application (FastCGI/PHP-FPM)"
+    print_error "  wordpress  - WordPress CMS"
+    print_error "  apache     - Apache web server"
+    print_error "  nginx      - Nginx web server"
+    print_error "  custom     - Custom backend (specify port)"
     exit 2
 fi
 
 # Set variables from parameters
-onion_domain="${1}"
-rid_replacement="${2}"
-telegram_bot_token="${3:-}"
-telegram_chat_id="${4:-}"
+rid_replacement="${1}"
+backend_service="${2:-evilginx3}"
+backend_port="${3:-}"
+telegram_bot_token="${4:-}"
+telegram_chat_id="${5:-}"
 INSTALL_DIR="/opt/evilgophish"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-print_info "EvilGoPhish Hidden Services Setup"
-print_info "===================================="
-print_info "Onion Domain: $onion_domain"
+# Set default backend port based on service type
+if [ -z "$backend_port" ]; then
+    case "$backend_service" in
+        evilginx3)
+            backend_port=443
+            ;;
+        php|wordpress|apache|nginx|custom)
+            backend_port=80
+            ;;
+        *)
+            print_error "Unknown backend service: $backend_service"
+            print_error "Supported: evilginx3, php, wordpress, apache, nginx, custom"
+            exit 1
+            ;;
+    esac
+fi
+
+print_info "EvilGoPhish Hidden Services Setup (v3 only)"
+print_info "=============================================="
+print_info "Backend Service: $backend_service"
+print_info "Backend Port: $backend_port"
 print_info "RID Parameter: $rid_replacement"
 print_info "Installation Directory: $INSTALL_DIR"
 
@@ -92,27 +121,34 @@ function install_go () {
     fi
 }
 
-# Configure Tor for hidden service
+# Configure Tor for hidden service (v3 only)
 function setup_tor () {
-    print_info "Configuring Tor hidden service..."
+    print_info "Configuring Tor v3 hidden service..."
     
     # Backup original torrc if exists
     if [ -f /etc/tor/torrc ]; then
         cp /etc/tor/torrc /etc/tor/torrc.backup.$(date +%Y%m%d_%H%M%S)
     fi
     
-    # Add hidden service configuration
+    # Add hidden service configuration for v3 only
     cat >> /etc/tor/torrc <<EOF
 
-# EvilGoPhish Hidden Service Configuration
+# EvilGoPhish Hidden Service Configuration (v3 only)
 HiddenServiceDir /var/lib/tor/evilgophish/
-HiddenServicePort 80 127.0.0.1:443
-HiddenServicePort 443 127.0.0.1:443
+HiddenServiceVersion 3
+HiddenServicePort 80 127.0.0.1:${backend_port}
+HiddenServicePort 443 127.0.0.1:${backend_port}
 
-# Security hardening
+# Backend service specific configuration
+# Backend: ${backend_service} on port ${backend_port}
+
+# Security hardening for v3 hidden services
 RunAsDaemon 1
 Log notice file /var/log/tor/notices.log
 DataDirectory /var/lib/tor
+
+# Disable v2 hidden services (legacy)
+HiddenServiceVersion 3
 EOF
 
     # Create hidden service directory
@@ -121,17 +157,26 @@ EOF
     chmod 700 /var/lib/tor/evilgophish
     
     # Restart Tor
+    print_info "Restarting Tor service..."
     systemctl restart tor
-    sleep 5
+    sleep 10
     
-    # Get the onion address
+    # Get the onion address and verify it's v3
     if [ -f /var/lib/tor/evilgophish/hostname ]; then
         ONION_ADDRESS=$(cat /var/lib/tor/evilgophish/hostname)
-        print_good "Tor hidden service configured!"
-        print_good "Your .onion address: $ONION_ADDRESS"
-        print_info "Make sure to use this address for your phishing campaigns"
+        
+        # Verify it's a v3 address (56 characters before .onion)
+        if [[ ${#ONION_ADDRESS} -eq 62 ]]; then
+            print_good "Tor v3 hidden service configured successfully!"
+            print_good "Your .onion v3 address: $ONION_ADDRESS"
+            print_info "Backend service '$backend_service' accessible via this hidden service on port $backend_port"
+        else
+            print_error "Generated address is not v3 format (expected 56 chars + .onion)"
+            print_error "Address: $ONION_ADDRESS"
+        fi
     else
-        print_error "Failed to generate .onion address. Check Tor logs."
+        print_error "Failed to generate .onion address. Check Tor logs:"
+        print_error "  sudo journalctl -u tor -n 50"
     fi
 }
 
@@ -156,11 +201,11 @@ function setup_install_dir () {
     print_good "Installation directory ready"
 }
 
-# Build components
+# Build components based on backend service
 function build_components () {
-    print_info "Building EvilGoPhish components..."
+    print_info "Building EvilGoPhish components for backend: $backend_service..."
     
-    # Build GoPhish
+    # Always build GoPhish (campaign management)
     print_info "Building GoPhish..."
     cd "$INSTALL_DIR/gophish"
     # Replace RID parameter
@@ -168,19 +213,49 @@ function build_components () {
     go build
     print_good "GoPhish built successfully"
     
-    # Build Evilginx3
-    print_info "Building Evilginx3..."
-    cd "$INSTALL_DIR/evilginx3"
-    go build -o evilginx3
-    print_good "Evilginx3 built successfully"
+    # Build backend-specific components
+    case "$backend_service" in
+        evilginx3)
+            # Build Evilginx3
+            print_info "Building Evilginx3..."
+            cd "$INSTALL_DIR/evilginx3"
+            go build -o evilginx3
+            print_good "Evilginx3 built successfully"
+            ;;
+        php|wordpress)
+            print_info "Setting up PHP/WordPress backend..."
+            apt-get install -y php-fpm php-mysql php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip
+            if [ "$backend_service" == "wordpress" ]; then
+                apt-get install -y mysql-server
+                print_good "WordPress dependencies installed"
+                print_info "You'll need to manually install WordPress in /var/www/html"
+            fi
+            print_good "PHP backend configured"
+            ;;
+        apache)
+            print_info "Setting up Apache backend..."
+            apt-get install -y apache2
+            systemctl enable apache2
+            print_good "Apache installed and enabled"
+            ;;
+        nginx)
+            print_info "Setting up Nginx backend..."
+            apt-get install -y nginx
+            systemctl enable nginx
+            print_good "Nginx installed and enabled"
+            ;;
+        custom)
+            print_info "Custom backend specified - assuming service is already configured"
+            ;;
+    esac
     
-    # Build EvilFeed
+    # Build EvilFeed (always)
     print_info "Building EvilFeed..."
     cd "$INSTALL_DIR/evilfeed"
     go build
     print_good "EvilFeed built successfully"
     
-    # Build Report Monitor
+    # Build Report Monitor (always)
     print_info "Building Report Monitor..."
     cd "$INSTALL_DIR/report_monitor"
     go build -o report_monitor
@@ -376,25 +451,43 @@ function main () {
     print_good "Installation complete!"
     print_good "============================================"
     print_info ""
+    print_info "Configuration Summary:"
+    print_info "  Backend Service: $backend_service"
+    print_info "  Backend Port: $backend_port"
+    print_info "  Tor Version: v3 only (56-char addresses)"
+    print_info ""
     print_info "Next steps:"
-    print_info "1. Review your .onion address:"
+    print_info "1. Review your Tor v3 .onion address:"
     print_info "   cat /var/lib/tor/evilgophish/hostname"
     print_info ""
-    print_info "2. Configure Telegram (optional):"
+    if [ "$backend_service" == "wordpress" ]; then
+        print_info "2. Install WordPress manually:"
+        print_info "   cd /var/www/html && wget https://wordpress.org/latest.tar.gz"
+        print_info "   Configure MySQL and complete WordPress setup"
+        print_info ""
+    elif [ "$backend_service" == "php" ]; then
+        print_info "2. Deploy your PHP application:"
+        print_info "   Place files in /var/www/html"
+        print_info "   Configure PHP-FPM as needed"
+        print_info ""
+    fi
+    print_info "3. Configure Telegram (optional):"
     print_info "   nano $INSTALL_DIR/telegram_config.json"
     print_info ""
-    print_info "3. Start services:"
+    print_info "4. Start services:"
     print_info "   systemctl start evilgophish.service"
     print_info ""
-    print_info "4. Enable 2-hour timer:"
+    print_info "5. Enable 2-hour timer:"
     print_info "   systemctl enable --now evilgophish.timer"
     print_info ""
-    print_info "5. Access GoPhish:"
+    print_info "6. Access GoPhish:"
     print_info "   https://localhost:3333"
     print_info ""
-    print_info "6. Read the documentation:"
+    print_info "7. Read the documentation:"
     print_info "   cat $INSTALL_DIR/HIDDEN_SERVICES_README.md"
     print_info ""
+    print_good "Your hidden service is v3 only (56-character .onion addresses)"
+    print_good "Backend service '$backend_service' proxied on port $backend_port"
     print_good "Happy phishing! (Authorized testing only)"
 }
 

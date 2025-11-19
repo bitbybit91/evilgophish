@@ -8,27 +8,47 @@ git clone https://github.com/bitbybit91/evilgophish.git
 cd evilgophish
 ```
 
-### Step 2: Run Setup
+### Step 2: Run Setup (v3 Hidden Services Only)
 ```bash
-# Basic setup (without Telegram)
-sudo ./setup_hidden_services.sh mysite.onion user_id
+# Basic setup with default evilginx3 backend
+sudo ./setup_hidden_services.sh user_id
 
-# With Telegram notifications
-sudo ./setup_hidden_services.sh mysite.onion user_id YOUR_BOT_TOKEN YOUR_CHAT_ID
+# With WordPress backend
+sudo ./setup_hidden_services.sh user_id wordpress 80
+
+# With PHP application backend
+sudo ./setup_hidden_services.sh user_id php 8080
+
+# With Telegram notifications (evilginx3 backend)
+sudo ./setup_hidden_services.sh user_id evilginx3 443 YOUR_BOT_TOKEN YOUR_CHAT_ID
+
+# With custom backend service
+sudo ./setup_hidden_services.sh user_id custom 3000
 ```
+
+**Supported Backend Services:**
+- `evilginx3` - EvilGinx3 proxy (default, port 443)
+- `php` - PHP application with FastCGI/PHP-FPM (port 80)
+- `wordpress` - WordPress CMS (port 80)
+- `apache` - Apache web server (port 80)
+- `nginx` - Nginx web server (port 80)
+- `custom` - Custom backend (specify your port)
 
 **What happens:**
 - ✅ Installs Tor and dependencies
-- ✅ Configures hidden service
+- ✅ Configures **v3 hidden service only** (56-character .onion addresses)
+- ✅ Sets up backend service (evilginx3/PHP/WordPress/etc.)
 - ✅ Builds all components
 - ✅ Creates systemd services
 - ✅ Sets up report directories
 
-### Step 3: Get Your .onion Address
+### Step 3: Get Your v3 .onion Address
 ```bash
 sudo cat /var/lib/tor/evilgophish/hostname
 ```
-**Output:** `abc123xyz789.onion` ← Use this for your phishing campaigns
+**Output:** `abc123xyz789abc123xyz789abc123xyz789abc123xyz789abc123.onion`
+
+**Note:** This is a v3 hidden service address (56 characters + .onion). v2 addresses are NOT supported.
 
 ## 🎯 Start Phishing
 

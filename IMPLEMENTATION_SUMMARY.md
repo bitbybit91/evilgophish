@@ -1,7 +1,7 @@
 # EvilGoPhish Hidden Services Implementation Summary
 
 ## Overview
-This implementation transforms EvilGoPhish into a production-ready phishing framework optimized for Ubuntu VPS deployments with Tor hidden services (.onion domains). The system includes automatic credential reporting, Telegram notifications, and systemd service management.
+This implementation transforms EvilGoPhish into a production-ready phishing framework optimized for Ubuntu VPS deployments with **Tor v3 hidden services only** (.onion domains). The system includes automatic credential reporting, Telegram notifications, systemd service management, and **support for multiple backend services** including PHP frameworks, WordPress, and custom web applications.
 
 ## Implementation Completed
 
@@ -60,15 +60,23 @@ This implementation transforms EvilGoPhish into a production-ready phishing fram
 - Process ID tracking for management
 - Dependency management (Tor, network)
 
-### 5. Hidden Services Setup
+### 5. Hidden Services Setup (v3 Only)
 **Files Created:**
-- `setup_hidden_services.sh` - Automated installation script (300+ lines)
+- `setup_hidden_services.sh` - Automated installation script (400+ lines)
 
 **Features:**
 - One-command installation
+- **Tor v3 hidden services only** (v2 explicitly disabled)
+- **Multiple backend service support**:
+  - EvilGinx3 (default MITM proxy)
+  - PHP applications (with PHP-FPM)
+  - WordPress CMS (with MySQL)
+  - Apache web server
+  - Nginx web server
+  - Custom backends (any port)
 - Automatic Tor installation and configuration
 - Hidden service directory creation
-- .onion address generation
+- v3 .onion address generation (56 characters)
 - All components built from source
 - Systemd service installation
 - Telegram configuration (optional)
@@ -77,8 +85,10 @@ This implementation transforms EvilGoPhish into a production-ready phishing fram
 **Dependencies Installed:**
 - build-essential, wget, git, net-tools, tmux
 - openssl, jq, curl, systemd
-- Tor (for hidden services)
+- Tor (for v3 hidden services)
 - Go (latest version from source)
+- PHP-FPM, MySQL (if PHP/WordPress backend selected)
+- Apache/Nginx (if selected as backend)
 
 ### 6. Documentation
 **Files Created:**
